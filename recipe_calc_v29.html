@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestore Ricette</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { 
+            background-color: #f8f9fa; 
+            padding-top: 50px; 
+        }
+        
+        .navbar {
+            height: 50px;
+        }
+        
+        .navbar-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .navbar-actions .btn {
+            padding: 4px 8px;
+            font-size: 0.9rem;
+        }
+
+        .container { 
+            max-width: 800px; 
+            background-color: #fff; 
+            border-radius: 15px; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.1); 
+            padding: 20px;
+            margin-top: 15px; 
+        }
+
+        .section-container {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .sub-section {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        .step-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .step-number {
+            min-width: 30px;
+            font-weight: bold;
+        }
+
+        .step-content {
+            flex-grow: 1;
+        }
+
+        .step-image {
+            max-width: 200px;
+            height: auto;
+            margin-top: 10px;
+        }
+
+        .recipe-header-image {
+            max-height: 300px;
+            object-fit: cover;
+            width: 100%;
+            border-radius: 8px;
+        }
+
+        .subsection-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .ingredients-subsection {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+        }
+
+        .preparation-subsection {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .navbar-actions .btn {
+                padding: 2px 6px;
+                font-size: 0.8rem;
+            }
+
+            .step-image {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+        <div class="container-fluid">
+            <div class="navbar-actions">
+                <button class="btn btn-outline-secondary" onclick="newRecipe()">
+                    <i class="bi bi-file-earmark"></i> Nuovo
+                </button>
+                <button class="btn btn-outline-primary" onclick="loadRecipe()">
+                    <i class="bi bi-upload"></i> Carica
+                </button>
+                <button class="btn btn-outline-success" onclick="saveRecipe()">
+                    <i class="bi bi-save"></i> Salva
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Sezione Intestazione -->
+        <div class="section-container">
+            <input type="text" class="form-control form-control-lg mb-3" id="recipeTitle" placeholder="Titolo della ricetta">
+            <div class="mb-3">
+                <input type="file" class="form-control" id="recipeImage" accept="image/*">
+                <img id="imagePreview" class="recipe-header-image mt-2" style="display: none;">
+            </div>
+            <textarea class="form-control" id="recipeDescription" rows="3" placeholder="Descrizione della ricetta"></textarea>
+        </div>
+
+        <!-- Sezione Dosi -->
+        <div class="section-container">
+            <h4>Dosi e Porzioni</h4>
+            <div class="row">
+                <div class="col-md-6 mb-2">
+                    <label>Porzioni originali:</label>
+                    <input type="number" class="form-control" id="originalServings" min="1" value="1">
+                </div>
+                <div class="col-md-6 mb-2">
+                    <label>Porzioni desiderate:</label>
+                    <input type="number" class="form-control" id="desiredServings" min="1" value="1">
+                </div>
+                <div class="col-md-6 mb-2">
+                    <label>Peso porzione calcolato (g):</label>
+                    <input type="number" class="form-control" id="calculatedPortionWeight" readonly>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <label>Peso porzione desiderato (g):</label>
+                    <input type="number" class="form-control" id="desiredPortionWeight" min="0">
+                </div>
+            </div>
+        </div>
+
+        <!-- Sezione Ingredienti -->
+        <div class="section-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4>Ingredienti</h4>
+                <button class="btn btn-outline-primary btn-sm" onclick="addIngredientSubsection()">
+                    <i class="bi bi-plus-circle"></i> Nuova Sottosezione
+                </button>
+            </div>
+            <div id="ingredientsContainer"></div>
+        </div>
+
+        <!-- Sezione Preparazioni -->
+        <div class="section-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4>Preparazioni</h4>
+                <button class="btn btn-outline-primary btn-sm" onclick="addPreparationSubsection()">
+                    <i class="bi bi-plus-circle"></i> Nuova Sottosezione
+                </button>
+            </div>
+            <div id="preparationContainer"></div>
+        </div>
+
+        <!-- Sezione Preparazione Finale -->
+        <div class="section-container">
+            <h4>Preparazione Finale</h4>
+            <div id="finalSteps"></div>
+            <button class="btn btn-primary btn-sm mt-2" onclick="addFinalStep()">
+                <i class="bi bi-plus-circle"></i> Aggiungi Passaggio
+            </button>
+        </div>
+
+        <!-- Sezione Note -->
+        <div class="section-container">
+            <h4>Note</h4>
+            <textarea class="form-control" id="recipeNotes" rows="4" placeholder="Inserisci qui eventuali note aggiuntive"></textarea>
+        </div>
+    </div>
+<script>
+    let recipeImage = null;
+    let ingredientSubsectionCounter = 0;
+    let preparationSubsectionCounter = 0;
+    let finalStepCounter = 0;
+
+    // Funzione per aggiungere sottosezione ingredienti
+    function addIngredientSubsection() {
+        ingredientSubsectionCounter++;
+        const container = document.getElementById('ingredientsContainer');
+        
+        const subsection = document.createElement('div');
+        subsection.className = 'ingredients-subsection';
+        subsection.innerHTML = `
+            <div class="subsection-title">
+                <input type="text" class="form-control form-control-sm mb-2" placeholder="Nome sottosezione">
+                <button class="btn btn-danger btn-sm" onclick="removeSubsection(this)">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">N°</th>
+                        <th style="width: 45%;">Nome</th>
+                        <th style="width: 20%;">Quantità (g)</th>
+                        <th style="width: 20%;">Ricalcolata (g)</th>
+                        <th style="width: 10%;">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <button class="btn btn-outline-secondary btn-sm" onclick="addIngredientToSubsection(this)">
+                <i class="bi bi-plus-circle"></i> Aggiungi Ingrediente
+            </button>
+        `;
+        container.appendChild(subsection);
+    }
+
+    // Funzione per aggiungere sottosezione preparazione
+    function addPreparationSubsection() {
+        preparationSubsectionCounter++;
+        const container = document.getElementById('preparationContainer');
+        
+        const subsection = document.createElement('div');
+        subsection.className = 'preparation-subsection';
+        subsection.innerHTML = `
+            <div class="subsection-title">
+                <input type="text" class="form-control form-control-sm mb-2" placeholder="Nome sottosezione">
+                <button class="btn btn-danger btn-sm" onclick="removeSubsection(this)">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+            <div class="preparation-steps"></div>
+            <button class="btn btn-outline-secondary btn-sm" onclick="addPreparationStep(this)">
+                <i class="bi bi-plus-circle"></i> Aggiungi Passaggio
+            </button>
+        `;
+        container.appendChild(subsection);
+    }
+
+    // Funzione per aggiungere ingrediente a sottosezione
+    function addIngredientToSubsection(button) {
+        const tbody = button.previousElementSibling.querySelector('tbody');
+        const rowCount = tbody.rows.length;
+        const row = tbody.insertRow();
+        row.innerHTML = `
+            <td class="ingredient-number">${rowCount + 1}</td>
+            <td><input type="text" class="form-control form-control-sm ingredientName"></td>
+            <td><input type="number" class="form-control form-control-sm ingredientQuantity" oninput="recalculateQuantities()"></td>
+            <td><span class="recalculatedQuantity"></span></td>
+            <td>
+                <button class="btn btn-danger btn-sm" onclick="removeIngredient(this)">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+        recalculateQuantities();
+    }
+
+    // Funzione per aggiungere passaggio di preparazione
+    function addPreparationStep(button) {
+        const stepsContainer = button.previousElementSibling;
+        const stepCount = stepsContainer.children.length + 1;
+        
+        const step = document.createElement('div');
+        step.className = 'step-container';
+        step.innerHTML = `
+            <div class="step-number">${stepCount}.</div>
+            <div class="step-content">
+                <textarea class="form-control mb-2" rows="3" placeholder="Descrizione del passaggio"></textarea>
+                <input type="file" class="form-control mb-2" accept="image/*" onchange="handleStepImage(this)">
+                <img class="step-image" style="display: none;">
+                <button class="btn btn-danger btn-sm mt-2" onclick="removeStep(this)">
+                    <i class="bi bi-trash"></i> Rimuovi
+                </button>
+            </div>
+        `;
+        stepsContainer.appendChild(step);
+    }
+
+    // Funzione per aggiungere passaggio finale
+    function addFinalStep() {
+        finalStepCounter++;
+        const container = document.getElementById('finalSteps');
+        const step = document.createElement('div');
+        step.className = 'step-container';
+        step.innerHTML = `
+            <div class="step-number">${finalStepCounter}.</div>
+            <div class="step-content">
+                <textarea class="form-control mb-2" rows="3" placeholder="Descrizione del passaggio finale"></textarea>
+                <input type="file" class="form-control mb-2" accept="image/*" onchange="handleStepImage(this)">
+                <img class="step-image" style="display: none;">
+                <button class="btn btn-danger btn-sm mt-2" onclick="removeStep(this)">
+                    <i class="bi bi-trash"></i> Rimuovi
+                </button>
+            </div>
+        `;
+        container.appendChild(step);
+        updateStepNumbers(container);
+    }
+
+    // Gestione immagini e funzioni di supporto
+    function handleStepImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            const imgPreview = input.nextElementSibling;
+            
+            reader.onload = function(e) {
+                imgPreview.src = e.target.result;
+                imgPreview.style.display = 'block';
+            };
+            
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function removeSubsection(button) {
+        button.closest('.ingredients-subsection, .preparation-subsection').remove();
+        recalculateQuantities();
+    }
+
+    function removeIngredient(button) {
+        const row = button.closest('tr');
+        const tbody = row.closest('tbody');
+        row.remove();
+        recalculateQuantities();
+        updateIngredientNumbers(tbody);
+    }
+
+    function removeStep(button) {
+        const stepContainer = button.closest('.step-container');
+        const stepsContainer = stepContainer.parentElement;
+  
+        stepContainer.remove();
+        updateStepNumbers(stepsContainer);
+    }
+
+    function updateStepNumbers(container) {
+        const steps = container.querySelectorAll('.step-number');
+        steps.forEach((step, index) => {
+            step.textContent = `${index + 1}.`;
+        });
+    }
+
+    function updateIngredientNumbers(tbody) {
+        const rows = tbody.querySelectorAll('tr');
+        rows.forEach((row, index) => {
+            row.querySelector('.ingredient-number').textContent = index + 1;
+        });
+    }
+
+    function recalculateQuantities() {
+        const originalServings = parseFloat(document.getElementById('originalServings').value) || 1;
+        const desiredServings = parseFloat(document.getElementById('desiredServings').value) || 1;
+        const servingsRatio = desiredServings / originalServings;
+
+        let totalWeight = 0;
+        document.querySelectorAll('.ingredientQuantity').forEach(input => {
+            const quantity = parseFloat(input.value) || 0;
+            totalWeight += quantity;
+        });
+
+        const calculatedPortionWeight = totalWeight / originalServings;
+        document.getElementById('calculatedPortionWeight').value = calculatedPortionWeight.toFixed(1);
+
+        const desiredPortionWeight = parseFloat(document.getElementById('desiredPortionWeight').value) || calculatedPortionWeight;
+        const weightRatio = desiredPortionWeight / calculatedPortionWeight;
+
+        const totalRatio = servingsRatio * weightRatio;
+
+        document.querySelectorAll('.ingredientQuantity').forEach(input => {
+            const originalQuantity = parseFloat(input.value) || 0;
+            const recalculatedQuantity = (originalQuantity * totalRatio).toFixed(1);
+            input.closest('tr').querySelector('.recalculatedQuantity').textContent = recalculatedQuantity;
+        });
+    }
+
+function loadRecipeData(recipe) {
+    try {
+        // Carica i dati base
+        document.getElementById('recipeTitle').value = recipe.title || '';
+        document.getElementById('recipeDescription').value = recipe.description || '';
+        document.getElementById('originalServings').value = recipe.servings.original || '1';
+        document.getElementById('desiredServings').value = recipe.servings.desired || '1';
+        document.getElementById('calculatedPortionWeight').value = recipe.servings.calculatedWeight || '';
+        document.getElementById('desiredPortionWeight').value = recipe.servings.desiredWeight || '';
+        document.getElementById('recipeNotes').value = recipe.notes || '';
+
+        if (recipe.image) {
+            document.getElementById('imagePreview').src = recipe.image;
+            document.getElementById('imagePreview').style.display = 'block';
+        }
+
+        // Pulisci i contenitori
+        document.getElementById('ingredientsContainer').innerHTML = '';
+        document.getElementById('preparationContainer').innerHTML = '';
+        document.getElementById('finalSteps').innerHTML = '';
+
+        // Reset contatori
+        ingredientSubsectionCounter = 0;
+        preparationSubsectionCounter = 0;
+        finalStepCounter = 0;
+
+        // Carica gli ingredienti
+        if (recipe.ingredients && recipe.ingredients.length > 0) {
+            recipe.ingredients.forEach(subsection => {
+                // Crea la sottosezione
+                addIngredientSubsection();
+                const lastSubsection = document.getElementById('ingredientsContainer').lastElementChild;
+                
+                if (lastSubsection) {
+                    // Imposta il nome della sottosezione
+                    const titleInput = lastSubsection.querySelector('.subsection-title input');
+                    if (titleInput) titleInput.value = subsection.name || '';
+
+                    // Aggiungi gli ingredienti
+                    if (subsection.ingredients && subsection.ingredients.length > 0) {
+                        subsection.ingredients.forEach(ingredient => {
+                            const addButton = lastSubsection.querySelector('button[onclick="addIngredientToSubsection(this)"]');
+                            if (addButton) {
+                                addIngredientToSubsection(addButton);
+                                const lastRow = lastSubsection.querySelector('tbody tr:last-child');
+                                if (lastRow) {
+                                    const nameInput = lastRow.querySelector('.ingredientName');
+                                    const quantityInput = lastRow.querySelector('.ingredientQuantity');
+                                    if (nameInput) nameInput.value = ingredient.name || '';
+                                    if (quantityInput) quantityInput.value = ingredient.quantity || '';
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+        // Carica le preparazioni
+        if (recipe.preparations && recipe.preparations.length > 0) {
+            recipe.preparations.forEach(subsection => {
+                // Crea la sottosezione
+                addPreparationSubsection();
+                const lastSubsection = document.getElementById('preparationContainer').lastElementChild;
+                
+                if (lastSubsection) {
+                    // Imposta il nome della sottosezione
+                    const titleInput = lastSubsection.querySelector('.subsection-title input');
+                    if (titleInput) titleInput.value = subsection.name || '';
+
+                    // Aggiungi i passaggi
+                    if (subsection.steps && subsection.steps.length > 0) {
+                        subsection.steps.forEach(step => {
+                            const addButton = lastSubsection.querySelector('button[onclick="addPreparationStep(this)"]');
+                            if (addButton) {
+                                addPreparationStep(addButton);
+                                const lastStep = lastSubsection.querySelector('.step-container:last-child');
+                                if (lastStep) {
+                                    const textarea = lastStep.querySelector('textarea');
+                                    const img = lastStep.querySelector('img');
+                                    if (textarea) textarea.value = step.description || '';
+                                    if (img && step.image) {
+                                        img.src = step.image;
+                                        img.style.display = 'block';
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+        // Carica i passaggi finali
+        if (recipe.finalSteps && recipe.finalSteps.length > 0) {
+            recipe.finalSteps.forEach(step => {
+                addFinalStep();
+                const lastStep = document.getElementById('finalSteps').lastElementChild;
+                if (lastStep) {
+                    const textarea = lastStep.querySelector('textarea');
+                    const img = lastStep.querySelector('img');
+                    if (textarea) textarea.value = step.description || '';
+                    if (img && step.image) {
+                        img.src = step.image;
+                        img.style.display = 'block';
+                    }
+                }
+            });
+        }
+
+        // Ricalcola le quantità dopo aver caricato tutto
+        recalculateQuantities();
+
+    } catch (error) {
+        console.error('Errore nel caricamento della ricetta:', error);
+        alert('Si è verificato un errore nel caricamento della ricetta. Controlla la console per i dettagli.');
+    }
+}
+
+
+    function loadRecipe() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = function(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const recipe = JSON.parse(e.target.result);
+                loadRecipeData(recipe);
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
+
+    function saveRecipe() {
+        const recipe = {
+            title: document.getElementById('recipeTitle').value,
+            description: document.getElementById('recipeDescription').value,
+            image: document.getElementById('imagePreview').src || '',
+            servings: {
+                original: document.getElementById('originalServings').value,
+                desired: document.getElementById('desiredServings').value,
+                calculatedWeight: document.getElementById('calculatedPortionWeight').value,
+                desiredWeight: document.getElementById('desiredPortionWeight').value
+            },
+            ingredients: [],
+            preparations: [],
+            finalSteps: [],
+            notes: document.getElementById('recipeNotes').value
+        };
+
+        // Raccogli dati delle sottosezioni ingredienti
+        document.querySelectorAll('.ingredients-subsection').forEach(subsection => {
+            const subsectionData = {
+                name: subsection.querySelector('.subsection-title input').value,
+                ingredients: []
+            };
+
+            subsection.querySelectorAll('tbody tr').forEach(row => {
+                subsectionData.ingredients.push({
+                    name: row.querySelector('.ingredientName').value,
+                    quantity: row.querySelector('.ingredientQuantity').value
+                });
+            });
+
+            recipe.ingredients.push(subsectionData);
+        });
+
+        // Raccogli dati delle sottosezioni preparazione
+        document.querySelectorAll('.preparation-subsection').forEach(subsection => {
+            const subsectionData = {
+                name: subsection.querySelector('.subsection-title input').value,
+                steps: []
+            };
+
+            subsection.querySelectorAll('.step-container').forEach(step => {
+                subsectionData.steps.push({
+                    description: step.querySelector('textarea').value,
+                    image: step.querySelector('img').src !== window.location.href ? step.querySelector('img').src : ''
+                });
+            });
+
+            recipe.preparations.push(subsectionData);
+        });
+
+        // Raccogli dati dei passaggi finali
+        document.querySelectorAll('#finalSteps .step-container').forEach(step => {
+            recipe.finalSteps.push({
+                description: step.querySelector('textarea').value,
+                image: step.querySelector('img').src !== window.location.href ? step.querySelector('img').src : ''
+            });
+        });
+
+        // Salva il file
+        const blob = new Blob([JSON.stringify(recipe, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'ricetta.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function newRecipe() {
+        if (confirm('Vuoi creare una nuova ricetta? I dati non salvati andranno persi.')) {
+            location.reload();
+        }
+    }
+
+    // Inizializzazione
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('originalServings').addEventListener('input', recalculateQuantities);
+        document.getElementById('desiredServings').addEventListener('input', recalculateQuantities);
+        document.getElementById('desiredPortionWeight').addEventListener('input', recalculateQuantities);
+        
+        document.getElementById('recipeImage').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreview').src = e.target.result;
+                    document.getElementById('imagePreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Aggiungi una sottosezione ingredienti iniziale
+        addIngredientSubsection();
+    });
+</script>
+</body>
+</html>
